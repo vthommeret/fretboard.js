@@ -1,7 +1,8 @@
-var WIDTH = 400;
-var HEIGHT = 200;
+var FRET_WIDTH = 40;
+var STRING_HEIGHT = 30;
 
 var PADDING = 20;
+var RADIUS = 3;
 
 var SCALE = 2;
 var ARROW_WIDTH = 4;
@@ -12,29 +13,82 @@ var COLOR_MAJOR_SECOND = '#FED031'
 var COLOR_MINOR_THIRD = '#157EFB'
 
 function draw() {
-  var fretboard = document.getElementById('fretboard');
-  var canvas = fretboard.querySelector('canvas');
+  var pattern = document.querySelector('.pattern');
+  var canvas = document.createElement('canvas');
+
   var ctx = canvas.getContext('2d');
-  var width = parseInt(fretboard.style.width);
-  var height = parseInt(fretboard.style.height);
+
+  var frets = parseInt(pattern.dataset.frets, 10);
+  var strings = parseInt(pattern.dataset.strings, 10);
+
+  var patternWidth = FRET_WIDTH * frets;
+  var patternHeight = STRING_HEIGHT * (strings - 1);
+
+  var width = patternWidth + PADDING * 2;
+  var height = patternHeight + PADDING * 2;
 
   // Retina-friendly dimensions
   canvas.width = width * SCALE;
   canvas.height = height * SCALE;
-  canvas.style.width = width;
-  canvas.style.height = height;
+  canvas.style.width = pattern.style.width = width;
+  canvas.style.height = canvas.style.height = height;
   ctx.scale(SCALE, SCALE);
 
   // Padding
   ctx.translate(PADDING, PADDING);
 
-  // Canvas config
+  // Draw fretboard
+  ctx.strokeStyle = '#dadada';
+  roundRect(ctx, 0, 0, patternWidth, patternHeight, RADIUS);
+  ctx.stroke();
+
+  // Draw frets
+  ctx.beginPath();
+  for (var i = 0; i < frets - 1; i++) {
+    var x = FRET_WIDTH * (i + 1);
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, patternHeight);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // Draw strings
+  ctx.beginPath();
+  for (var i = 0; i < strings - 1; i++) {
+    var y = STRING_HEIGHT * (i + 1);
+    ctx.moveTo(0, y);
+    ctx.lineTo(patternWidth, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // Draw arrows
+  /*
   ctx.lineWidth = 2;
   ctx.lineCap = LINE_CAP;
-
   arrow(ctx, 0, 0, 200, 80, COLOR_MINOR_THIRD);
   arrow(ctx, 0, 120, 100, 90, COLOR_MAJOR_SECOND);
   arrow(ctx, 300, 0, 300, 100, COLOR_MINOR_THIRD);
+  */
+
+  // Add canvas to pattern
+  pattern.appendChild(canvas);
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  if (w < 2 * r) {
+    r = w / 2;
+  }
+  if (h < 2 * r) {
+    r = h / 2;
+  }
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y,   x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x,   y+h, r);
+  ctx.arcTo(x,   y+h, x,   y,   r);
+  ctx.arcTo(x,   y,   x+w, y,   r);
+  ctx.closePath();
 }
 
 function arrow(ctx, x1, y1, x2, y2, color) {

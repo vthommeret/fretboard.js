@@ -1,13 +1,17 @@
 body {
-  background: #ddd;
-  margin: 30px;
+  background: #fff;
+  margin: 40px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
-p {
+h2 {
   margin: 0 0 20px;
+  font-weight: 500;
+  font-size: 22px;
 }
-#fretboard {
+.pattern {
   background: #fff;
   border-radius: 4px;
   overflow: hidden;
+  border: solid 1px rgba(150, 150, 150, .5);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .15);
 }
