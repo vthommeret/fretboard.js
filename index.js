@@ -1,5 +1,6 @@
 var FRET_WIDTH = 40;
 var STRING_HEIGHT = 30;
+var NOTE_RADIUS = 10;
 
 var PADDING = 20;
 var RADIUS = 3;
@@ -9,21 +10,25 @@ var ARROW_WIDTH = 4;
 var ARROW_LEN = 7;
 var LINE_CAP = 'round';
 
-var COLOR_MAJOR_SECOND = '#FED031'
-var COLOR_MINOR_THIRD = '#157EFB'
+var COLOR_MAJOR_SECOND = '#FAC23D'
+var COLOR_MINOR_THIRD = '#4A90E2'
+
+var NOTE_COLOR = '#fff';
+var NOTE_FONT = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"';
 
 function draw() {
+  // Initialize canvas
   var pattern = document.querySelector('.pattern');
   var canvas = document.createElement('canvas');
-
   var ctx = canvas.getContext('2d');
 
+  // Get data
   var frets = parseInt(pattern.dataset.frets, 10);
   var strings = parseInt(pattern.dataset.strings, 10);
 
+  // Initialize dimensions
   var patternWidth = FRET_WIDTH * frets;
   var patternHeight = STRING_HEIGHT * (strings - 1);
-
   var width = patternWidth + PADDING * 2;
   var height = patternHeight + PADDING * 2;
 
@@ -62,6 +67,9 @@ function draw() {
   ctx.closePath();
   ctx.stroke();
 
+  // Draw notes
+  drawNote(ctx, FRET_WIDTH / 2, STRING_HEIGHT * 2, COLOR_MINOR_THIRD, '♭3');
+
   // Draw arrows
   /*
   ctx.lineWidth = 2;
@@ -75,6 +83,7 @@ function draw() {
   pattern.appendChild(canvas);
 }
 
+// Draw a rounded rectangle
 function roundRect(ctx, x, y, w, h, r) {
   if (w < 2 * r) {
     r = w / 2;
@@ -91,6 +100,27 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// Draw a note in a pattern
+function drawNote(ctx, x, y, color, note) {
+  ctx.save();
+
+  // Draw circle
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, NOTE_RADIUS, 0, 2 * Math.PI);
+  ctx.closePath();
+  ctx.fill();
+
+  // Draw label
+  var offset = NOTE_RADIUS / 2;
+  ctx.fillStyle = NOTE_COLOR;
+  ctx.font = NOTE_FONT;
+  ctx.fillText(note, x - offset, y + offset - .5);
+
+  ctx.restore();
+}
+
+// Draw an arrow
 function arrow(ctx, x1, y1, x2, y2, color) {
   var dx = x2 - x1;
   var dy = y2 - y1;
