@@ -84,7 +84,7 @@ function draw() {
 
     // Draw strings
     ctx.beginPath();
-    for (var j = 0; j < strings - 1; j++) {
+    for (var j = 0; j < strings - 2; j++) {
       var y = STRING_HEIGHT * (j + 1);
       ctx.moveTo(0, y);
       ctx.lineTo(patternWidth, y);
