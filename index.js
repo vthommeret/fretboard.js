@@ -3,7 +3,7 @@ var STRING_HEIGHT = 30;
 var NOTE_RADIUS = 10;
 
 var PADDING = 20;
-var RADIUS = 3;
+var BORDER_RADIUS = 3;
 
 var SCALE = 2;
 var ARROW_WIDTH = 4;
@@ -86,9 +86,52 @@ function drawPattern(pattern) {
   // Padding
   ctx.translate(PADDING, PADDING);
 
+  // Draw initial frame
+  drawPatternFrame(ctx,
+    patternWidth, patternHeight,
+    frets, strings, notes,
+  );
+
+  // Event listener
+  (function (width, height, frets, strings, notes) {
+    canvas.addEventListener('mousemove', function (e) {
+      var rect = this.getBoundingClientRect();
+      var pos = {
+        x: e.clientX - rect.left - PADDING,
+        y: e.clientY - rect.top - PADDING,
+      };
+      var highlight;
+      for (var i = 0; i < notes.length; i++) {
+        var note = notes[i];
+        var d = Math.sqrt(
+          Math.pow(pos.x - note.x, 2) +
+          Math.pow(pos.y - note.y, 2)
+        );
+        note.highlight = (d <= NOTE_RADIUS);
+        if (note.highlight) {
+          highlight = true;
+          break;
+        }
+      }
+      this.style.cursor = highlight ? 'pointer' : 'default';
+      drawPatternFrame(ctx, width, height, frets, strings, notes);
+    });
+  })(patternWidth, patternHeight, frets, strings, notes);
+
+  // Add canvas to pattern
+  pattern.appendChild(canvas);
+}
+
+function drawPatternFrame(ctx, width, height, frets, strings, notes, second) {
+  // Clear canvas
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity matrix
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.restore();
+
   // Draw fretboard
   ctx.strokeStyle = '#dadada';
-  roundRect(ctx, 0, 0, patternWidth, patternHeight, RADIUS);
+  roundRect(ctx, 0, 0, width, height, BORDER_RADIUS);
   ctx.stroke();
 
   // Draw frets
@@ -96,7 +139,7 @@ function drawPattern(pattern) {
   for (var j = 0; j < frets - 1; j++) {
     var x = FRET_WIDTH * (j + 1);
     ctx.moveTo(x, 0);
-    ctx.lineTo(x, patternHeight);
+    ctx.lineTo(x, height);
   }
   ctx.closePath();
   ctx.stroke();
@@ -106,7 +149,7 @@ function drawPattern(pattern) {
   for (var j = 0; j < strings - 2; j++) {
     var y = STRING_HEIGHT * (j + 1);
     ctx.moveTo(0, y);
-    ctx.lineTo(patternWidth, y);
+    ctx.lineTo(width, y);
   }
   ctx.closePath();
   ctx.stroke();
@@ -114,12 +157,12 @@ function drawPattern(pattern) {
   // Draw notes
   for (var j = 0; j < notes.length; j++) {
     var note = notes[j];
-    drawNote(ctx,
-      note.fret * FRET_WIDTH - FRET_WIDTH / 2,
-      (strings - note.string) * STRING_HEIGHT,
-      note.color,
-      note.label
-    );
+    var x = note.fret * FRET_WIDTH - FRET_WIDTH / 2;
+    var y = (strings - note.string) * STRING_HEIGHT;
+    var color = note.highlight ? COLOR_MINOR_THIRD : note.color;
+    note.x = x;
+    note.y = y;
+    drawNote(ctx, x, y, color, note.label);
   }
 
   // Draw arrows
@@ -130,9 +173,6 @@ function drawPattern(pattern) {
   arrow(ctx, 0, 120, 100, 90, COLOR_MAJOR_SECOND);
   arrow(ctx, 300, 0, 300, 100, COLOR_MINOR_THIRD);
   */
-
-  // Add canvas to pattern
-  pattern.appendChild(canvas);
 }
 
 // Return note objects given declarative notes definition
