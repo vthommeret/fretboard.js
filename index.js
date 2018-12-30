@@ -49,90 +49,90 @@ var INTERVALS = {
 };
 
 function draw() {
-  // Initialize canvas
   var patterns = document.querySelectorAll('.pattern');
-
   for (var i = 0; i < patterns.length; i++) {
-    var pattern = patterns[i];
-
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext('2d');
-
-    // Initialize notes
-    var notes = [];
-    if (pattern.dataset.notes) {
-      notes = normalizeNotes(parseNotes(pattern.dataset.notes));
-    }
-
-    // Get extents
-    var extents = noteExtents(notes);
-    frets = extents.frets.max;
-    strings = extents.strings.max;
-
-    // Initialize dimensions
-    var patternWidth = FRET_WIDTH * frets;
-    var patternHeight = STRING_HEIGHT * (strings - 1);
-    var width = patternWidth + PADDING * 2;
-    var height = patternHeight + PADDING * 2;
-
-    // Retina-friendly dimensions
-    canvas.width = width * SCALE;
-    canvas.height = height * SCALE;
-    canvas.style.width = pattern.style.width = width;
-    canvas.style.height = canvas.style.height = height;
-    ctx.scale(SCALE, SCALE);
-
-    // Padding
-    ctx.translate(PADDING, PADDING);
-
-    // Draw fretboard
-    ctx.strokeStyle = '#dadada';
-    roundRect(ctx, 0, 0, patternWidth, patternHeight, RADIUS);
-    ctx.stroke();
-
-    // Draw frets
-    ctx.beginPath();
-    for (var j = 0; j < frets - 1; j++) {
-      var x = FRET_WIDTH * (j + 1);
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, patternHeight);
-    }
-    ctx.closePath();
-    ctx.stroke();
-
-    // Draw strings
-    ctx.beginPath();
-    for (var j = 0; j < strings - 2; j++) {
-      var y = STRING_HEIGHT * (j + 1);
-      ctx.moveTo(0, y);
-      ctx.lineTo(patternWidth, y);
-    }
-    ctx.closePath();
-    ctx.stroke();
-
-    // Draw notes
-    for (var j = 0; j < notes.length; j++) {
-      var note = notes[j];
-      drawNote(ctx,
-        note.fret * FRET_WIDTH - FRET_WIDTH / 2,
-        (strings - note.string) * STRING_HEIGHT,
-        note.color,
-        note.label
-      );
-    }
-
-    // Draw arrows
-    /*
-    ctx.lineWidth = 2;
-    ctx.lineCap = LINE_CAP;
-    arrow(ctx, 0, 0, 200, 80, COLOR_MINOR_THIRD);
-    arrow(ctx, 0, 120, 100, 90, COLOR_MAJOR_SECOND);
-    arrow(ctx, 300, 0, 300, 100, COLOR_MINOR_THIRD);
-    */
-
-    // Add canvas to pattern
-    pattern.appendChild(canvas);
+    drawPattern(patterns[i]);
   }
+}
+
+function drawPattern(pattern) {
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+
+  // Initialize notes
+  var notes = [];
+  if (pattern.dataset.notes) {
+    notes = normalizeNotes(parseNotes(pattern.dataset.notes));
+  }
+
+  // Get extents
+  var extents = noteExtents(notes);
+  frets = extents.frets.max;
+  strings = extents.strings.max;
+
+  // Initialize dimensions
+  var patternWidth = FRET_WIDTH * frets;
+  var patternHeight = STRING_HEIGHT * (strings - 1);
+  var width = patternWidth + PADDING * 2;
+  var height = patternHeight + PADDING * 2;
+
+  // Retina-friendly dimensions
+  canvas.width = width * SCALE;
+  canvas.height = height * SCALE;
+  canvas.style.width = pattern.style.width = width;
+  canvas.style.height = canvas.style.height = height;
+  ctx.scale(SCALE, SCALE);
+
+  // Padding
+  ctx.translate(PADDING, PADDING);
+
+  // Draw fretboard
+  ctx.strokeStyle = '#dadada';
+  roundRect(ctx, 0, 0, patternWidth, patternHeight, RADIUS);
+  ctx.stroke();
+
+  // Draw frets
+  ctx.beginPath();
+  for (var j = 0; j < frets - 1; j++) {
+    var x = FRET_WIDTH * (j + 1);
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, patternHeight);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // Draw strings
+  ctx.beginPath();
+  for (var j = 0; j < strings - 2; j++) {
+    var y = STRING_HEIGHT * (j + 1);
+    ctx.moveTo(0, y);
+    ctx.lineTo(patternWidth, y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+
+  // Draw notes
+  for (var j = 0; j < notes.length; j++) {
+    var note = notes[j];
+    drawNote(ctx,
+      note.fret * FRET_WIDTH - FRET_WIDTH / 2,
+      (strings - note.string) * STRING_HEIGHT,
+      note.color,
+      note.label
+    );
+  }
+
+  // Draw arrows
+  /*
+  ctx.lineWidth = 2;
+  ctx.lineCap = LINE_CAP;
+  arrow(ctx, 0, 0, 200, 80, COLOR_MINOR_THIRD);
+  arrow(ctx, 0, 120, 100, 90, COLOR_MAJOR_SECOND);
+  arrow(ctx, 300, 0, 300, 100, COLOR_MINOR_THIRD);
+  */
+
+  // Add canvas to pattern
+  pattern.appendChild(canvas);
 }
 
 // Return note objects given declarative notes definition
