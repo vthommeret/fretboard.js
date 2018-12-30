@@ -13,6 +13,7 @@ var LINE_CAP = 'round';
 var COLOR_ROOT = '#000'
 var COLOR_MAJOR_SECOND = '#FAC23D'
 var COLOR_MINOR_THIRD = '#4A90E2'
+var COLOR_MINOR_THIRD_ACTIVE = '#1D5EAA'
 
 var NOTE_COLOR = '#fff';
 var NOTE_FONT = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"';
@@ -92,22 +93,14 @@ function drawPattern(pattern) {
     frets, strings, notes,
   );
 
-  // Event listener
+  // Mousemove handler
   (function (width, height, frets, strings, notes) {
     canvas.addEventListener('mousemove', function (e) {
-      var rect = this.getBoundingClientRect();
-      var pos = {
-        x: e.clientX - rect.left - PADDING,
-        y: e.clientY - rect.top - PADDING,
-      };
+      var pos = getPos(this, e);
       var highlight;
       for (var i = 0; i < notes.length; i++) {
         var note = notes[i];
-        var d = Math.sqrt(
-          Math.pow(pos.x - note.x, 2) +
-          Math.pow(pos.y - note.y, 2)
-        );
-        note.highlight = (d <= NOTE_RADIUS);
+        note.highlight = (noteDistance(pos, note) <= NOTE_RADIUS);
         if (note.highlight) {
           highlight = true;
           break;
@@ -118,8 +111,46 @@ function drawPattern(pattern) {
     });
   })(patternWidth, patternHeight, frets, strings, notes);
 
+  // Mousedown handler
+  (function (width, height, frets, strings, notes) {
+    canvas.addEventListener('mousedown', function (e) {
+      var pos = getPos(this, e);
+      for (var i = 0; i < notes.length; i++) {
+        var note = notes[i];
+        note.active = (noteDistance(pos, note) <= NOTE_RADIUS);
+      }
+      drawPatternFrame(ctx, width, height, frets, strings, notes);
+    });
+  })(patternWidth, patternHeight, frets, strings, notes);
+
+  // Mouseup handler
+  (function (width, height, frets, strings, notes) {
+    canvas.addEventListener('mouseup', function (e) {
+      for (var i = 0; i < notes.length; i++) {
+        var note = notes[i];
+        note.active = false;
+      }
+      drawPatternFrame(ctx, width, height, frets, strings, notes);
+    });
+  })(patternWidth, patternHeight, frets, strings, notes);
+
   // Add canvas to pattern
   pattern.appendChild(canvas);
+}
+
+function getPos(canvas, e) {
+  var rect = canvas.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left - PADDING,
+    y: e.clientY - rect.top - PADDING,
+  };
+}
+
+function noteDistance(pos, note) {
+  return Math.sqrt(
+    Math.pow(pos.x - note.x, 2) +
+    Math.pow(pos.y - note.y, 2)
+  );
 }
 
 function drawPatternFrame(ctx, width, height, frets, strings, notes, second) {
@@ -159,7 +190,14 @@ function drawPatternFrame(ctx, width, height, frets, strings, notes, second) {
     var note = notes[j];
     var x = note.fret * FRET_WIDTH - FRET_WIDTH / 2;
     var y = (strings - note.string) * STRING_HEIGHT;
-    var color = note.highlight ? COLOR_MINOR_THIRD : note.color;
+    var color;
+    if (note.active) {
+      color = COLOR_MINOR_THIRD_ACTIVE;
+    } else if (note.highlight) {
+      color = COLOR_MINOR_THIRD;
+    } else {
+      color = note.color;
+    }
     note.x = x;
     note.y = y;
     drawNote(ctx, x, y, color, note.label);
