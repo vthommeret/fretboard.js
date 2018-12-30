@@ -23,6 +23,31 @@ var COLOR_MAP = {
   'm3': COLOR_MINOR_THIRD,
 };
 
+var MIN_FRET = 1;
+var MIN_STRING = 2;
+var STRING_INTERVAL = 4; // Guitar string interval
+
+var INTERVALS = {
+   '1': 0,
+  '#1': 1,
+  'b2': 1,
+   '2': 2,
+  '#2': 3,
+  'b3': 3,
+   '3': 4,
+   '4': 5,
+  '#4': 6,
+  'b5': 6,
+   '5': 7,
+  '#5': 8,
+  'b6': 8,
+   '6': 9,
+  '#6': 10,
+  'b7': 10,
+   '7': 11,
+   '8': 12,
+};
+
 function draw() {
   // Initialize canvas
   var patterns = document.querySelectorAll('.pattern');
@@ -33,23 +58,16 @@ function draw() {
     var canvas = document.createElement('canvas');
     var ctx = canvas.getContext('2d');
 
-    // Get data
-    var frets = parseInt(pattern.dataset.frets, 10);
-    var strings = parseInt(pattern.dataset.strings, 10);
-    var notesData = pattern.dataset.notes.split(';');
-
     // Initialize notes
     var notes = [];
-    for (var j = 0; j < notesData.length; j++) {
-      var note = notesData[j];
-      var parts = note.split(',');
-      notes.push({
-        color: COLOR_MAP[parts[0]],
-        fret: parts[1],
-        string: parts[2],
-        label: parts[3],
-      });
+    if (pattern.dataset.notes) {
+      notes = normalizeNotes(parseNotes(pattern.dataset.notes));
     }
+
+    // Get extents
+    var extents = noteExtents(notes);
+    frets = extents.frets.max;
+    strings = extents.strings.max;
 
     // Initialize dimensions
     var patternWidth = FRET_WIDTH * frets;
@@ -115,6 +133,70 @@ function draw() {
     // Add canvas to pattern
     pattern.appendChild(canvas);
   }
+}
+
+// Return note objects given declarative notes definition
+function parseNotes(notesData) {
+  notesData = notesData.split(',');
+  var notes = [];
+  var string = 1;
+  for (var i = 0; i < notesData.length; i++) {
+    var note = notesData[i];
+    var fret;
+    if (note[note.length-1] === '^') {
+      note = note.substring(0, note.length-1);
+      string++;
+    }
+    note = note.trim();
+    fret = INTERVALS[note] - (string - 1) * INTERVALS[STRING_INTERVAL] + 1;
+    notes.push({
+      color: COLOR_ROOT,
+      fret: fret,
+      string: string,
+      label: styleNote(note),
+    });
+  }
+  return notes;
+}
+
+// Start frets at 1.
+function normalizeNotes(notes) {
+  var dims = noteExtents(notes);
+  var offset = MIN_FRET - dims.frets.min;
+  for (var i = 0; i < notes.length; i++) {
+    notes[i].fret += offset;
+  }
+  return notes;
+}
+
+// Return min and max of frets and strings.
+function noteExtents(notes) {
+  var dims = {
+    frets: {min: MIN_FRET, max: MIN_FRET},
+    strings: {min: MIN_STRING, max: MIN_STRING},
+  };
+  for (var i = 0; i < notes.length; i++) {
+    var note = notes[i];
+    if (note.fret < dims.frets.min) {
+      dims.frets.min = note.fret;
+    } else if (note.fret > dims.frets.max) {
+      dims.frets.max = note.fret;
+    }
+    if (note.string < dims.strings.min) {
+      dims.strings.min = note.string;
+    } else if (note.string > dims.strings.max) {
+      dims.strings.max = note.string;
+    }
+  }
+  return dims;
+}
+
+function styleNote(note) {
+  note = note
+    .replace('b', '♭')
+    .replace('#', '♯')
+    .replace('1', 'R');
+  return note;
 }
 
 // Draw a rounded rectangle
