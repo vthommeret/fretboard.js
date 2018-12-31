@@ -10,6 +10,8 @@ var ARROW_WIDTH = 4;
 var ARROW_LEN = 7;
 var LINE_CAP = 'round';
 
+var COLOR_BASE = '#DADADA';
+
 var COLOR_ROOT = '#000'
 var COLOR_MAJOR_SECOND = '#FAC23D'
 var COLOR_MINOR_THIRD = '#4A90E2'
@@ -161,7 +163,7 @@ function drawPatternFrame(ctx, width, height, frets, strings, notes, second) {
   ctx.restore();
 
   // Draw fretboard
-  ctx.strokeStyle = '#dadada';
+  ctx.strokeStyle = COLOR_BASE;
   roundRect(ctx, 0, 0, width, height, BORDER_RADIUS);
   ctx.stroke();
 
