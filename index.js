@@ -51,93 +51,221 @@ var INTERVALS = {
    '8': 12,
 };
 
-function draw() {
+var DATA_KEY = 'im.pattern';
+
+function initPatterns() {
+  var lastPattern;
+
+  // Create Pattern objects
   var patterns = document.querySelectorAll('.pattern');
   for (var i = 0; i < patterns.length; i++) {
-    drawPattern(patterns[i]);
+    var el = patterns[i];
+    if (!el.dataset[DATA_KEY]) {
+      var pattern = new Pattern(el);
+      el[DATA_KEY] = pattern;
+    }
+  }
+
+  // Mousemove handler
+  window.addEventListener('mousemove', function (e) {
+    var pattern = delegateEvent(e);
+
+    // Clear any persistent state if window loses focuses.
+    if (e.target !== lastPattern) {
+      if (typeof lastPattern !== 'undefined') {
+        lastPattern.dispatchEvent(e);
+        delete lastPattern;
+      }
+      if (pattern) {
+        lastPattern = pattern;
+      }
+    }
+  });
+
+  // Mousedown handler
+  window.addEventListener('mousedown', delegateEvent);
+
+  // Mouseup handler
+  window.addEventListener('mouseup', delegateEvent);
+
+  // Delegates window event to individual pattern event
+  function delegateEvent(e) {
+    var target = e.target.parentElement;
+    if (target.hasOwnProperty(DATA_KEY)) {
+      var pattern = target[DATA_KEY];
+      pattern.dispatchEvent(e);
+      return pattern;
+    }
+    return false;
   }
 }
 
-function drawPattern(pattern) {
-  var canvas = document.createElement('canvas');
-  var ctx = canvas.getContext('2d');
+class Pattern {
+  constructor(el) {
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    this._canvas = canvas;
+    this._ctx = ctx;
 
-  // Initialize notes
-  var notes = [];
-  if (pattern.dataset.notes) {
-    notes = normalizeNotes(parseNotes(pattern.dataset.notes));
+    // Initialize notes
+    var notes = [];
+    if (el.dataset.notes) {
+      notes = normalizeNotes(parseNotes(el.dataset.notes));
+    }
+    this._notes = notes;
+
+    // Get extents
+    var extents = noteExtents(notes);
+    var frets = extents.frets.max;
+    var strings = extents.strings.max;
+    this._frets = frets;
+    this._strings = strings;
+
+    // Initialize dimensions
+    var width = FRET_WIDTH * frets;
+    var height = STRING_HEIGHT * (strings - 1);
+    var canvasWidth = width + PADDING * 2;
+    var canvasHeight = height + PADDING * 2;
+    this._width = width;
+    this._height = height;
+
+    // Retina-friendly dimensions
+    canvas.width = canvasWidth * SCALE;
+    canvas.height = canvasHeight * SCALE;
+    canvas.style.width = el.style.width = canvasWidth;
+    canvas.style.height = canvas.style.height = canvasHeight;
+    ctx.scale(SCALE, SCALE);
+
+    // Padding
+    ctx.translate(PADDING, PADDING);
+
+    // Draw initial frame
+    this.draw();
+
+    // Add canvas to pattern
+    el.appendChild(canvas);
   }
 
-  // Get extents
-  var extents = noteExtents(notes);
-  frets = extents.frets.max;
-  strings = extents.strings.max;
+  // Draw pattern
+  draw() {
+    var ctx = this._ctx;
+    var width = this._width;
+    var height = this._height;
+    var notes = this._notes;
+    var frets = this._frets;
+    var strings = this._strings;
 
-  // Initialize dimensions
-  var patternWidth = FRET_WIDTH * frets;
-  var patternHeight = STRING_HEIGHT * (strings - 1);
-  var width = patternWidth + PADDING * 2;
-  var height = patternHeight + PADDING * 2;
+    // Clear canvas
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity matrix
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.restore();
 
-  // Retina-friendly dimensions
-  canvas.width = width * SCALE;
-  canvas.height = height * SCALE;
-  canvas.style.width = pattern.style.width = width;
-  canvas.style.height = canvas.style.height = height;
-  ctx.scale(SCALE, SCALE);
+    // Draw fretboard
+    ctx.strokeStyle = COLOR_BASE;
+    roundRect(ctx, 0, 0, width, height, BORDER_RADIUS);
+    ctx.stroke();
 
-  // Padding
-  ctx.translate(PADDING, PADDING);
+    // Draw frets
+    ctx.beginPath();
+    for (var j = 0; j < frets - 1; j++) {
+      var x = FRET_WIDTH * (j + 1);
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, height);
+    }
+    ctx.closePath();
+    ctx.stroke();
 
-  // Draw initial frame
-  drawPatternFrame(ctx,
-    patternWidth, patternHeight,
-    frets, strings, notes,
-  );
+    // Draw strings
+    ctx.beginPath();
+    for (var j = 0; j < strings - 2; j++) {
+      var y = STRING_HEIGHT * (j + 1);
+      ctx.moveTo(0, y);
+      ctx.lineTo(width, y);
+    }
+    ctx.closePath();
+    ctx.stroke();
 
-  // Mousemove handler
-  (function (width, height, frets, strings, notes) {
-    canvas.addEventListener('mousemove', function (e) {
-      var pos = getPos(this, e);
-      var highlight;
-      for (var i = 0; i < notes.length; i++) {
-        var note = notes[i];
-        note.highlight = (noteDistance(pos, note) <= NOTE_RADIUS);
-        if (note.highlight) {
-          highlight = true;
-          break;
-        }
+    // Draw notes
+    for (var j = 0; j < notes.length; j++) {
+      var note = notes[j];
+      var x = note.fret * FRET_WIDTH - FRET_WIDTH / 2;
+      var y = (strings - note.string) * STRING_HEIGHT;
+      var color;
+      if (note.active) {
+        color = COLOR_MINOR_THIRD_ACTIVE;
+      } else if (note.highlight) {
+        color = COLOR_MINOR_THIRD;
+      } else {
+        color = note.color;
       }
-      this.style.cursor = highlight ? 'pointer' : 'default';
-      drawPatternFrame(ctx, width, height, frets, strings, notes);
-    });
-  })(patternWidth, patternHeight, frets, strings, notes);
+      note.x = x;
+      note.y = y;
+      drawNote(ctx, x, y, color, note.label);
+    }
 
-  // Mousedown handler
-  (function (width, height, frets, strings, notes) {
-    canvas.addEventListener('mousedown', function (e) {
-      var pos = getPos(this, e);
-      for (var i = 0; i < notes.length; i++) {
-        var note = notes[i];
-        note.active = (noteDistance(pos, note) <= NOTE_RADIUS);
+    // Draw arrows
+    /*
+    ctx.lineWidth = 2;
+    ctx.lineCap = LINE_CAP;
+    arrow(ctx, 0, 0, 200, 80, COLOR_MINOR_THIRD);
+    arrow(ctx, 0, 120, 100, 90, COLOR_MAJOR_SECOND);
+    arrow(ctx, 300, 0, 300, 100, COLOR_MINOR_THIRD);
+    */
+  }
+
+  // Dispatch event to specific handlers.
+  dispatchEvent(e) {
+    switch (e.type) {
+      case 'mousemove':
+        this.mousemove(e);
+        break;
+      case 'mousedown':
+        this.mousedown(e);
+        break;
+      case 'mouseup':
+        this.mouseup(e);
+        break;
+    }
+  }
+
+  // Highlight notes
+  mousemove(e) {
+    var pos = getPos(this._canvas, e);
+    var highlight;
+    for (var i = 0; i < this._notes.length; i++) {
+      var note = this._notes[i];
+      note.highlight = (noteDistance(pos, note) <= NOTE_RADIUS);
+      if (note.highlight) {
+        highlight = true;
+        break;
       }
-      drawPatternFrame(ctx, width, height, frets, strings, notes);
-    });
-  })(patternWidth, patternHeight, frets, strings, notes);
+    }
+    this._canvas.style.cursor = highlight ? 'pointer' : 'default';
+    this.draw();
+  }
 
-  // Mouseup handler
-  (function (width, height, frets, strings, notes) {
-    canvas.addEventListener('mouseup', function (e) {
-      for (var i = 0; i < notes.length; i++) {
-        var note = notes[i];
-        note.active = false;
-      }
-      drawPatternFrame(ctx, width, height, frets, strings, notes);
-    });
-  })(patternWidth, patternHeight, frets, strings, notes);
+  // Change notes to active state
+  mousedown(e) {
+    var canvas = this._canvas;
+    var notes = this._notes;
+    var pos = getPos(canvas, e);
+    for (var i = 0; i < notes.length; i++) {
+      var note = notes[i];
+      note.active = (noteDistance(pos, note) <= NOTE_RADIUS);
+    }
+    this.draw();
+  }
 
-  // Add canvas to pattern
-  pattern.appendChild(canvas);
+  // Change notes to default state
+  mouseup(e) {
+    var notes = this._notes;
+    for (var i = 0; i < notes.length; i++) {
+      var note = notes[i];
+      note.active = false;
+    }
+    this.draw();
+  }
 }
 
 function getPos(canvas, e) {
@@ -153,66 +281,6 @@ function noteDistance(pos, note) {
     Math.pow(pos.x - note.x, 2) +
     Math.pow(pos.y - note.y, 2)
   );
-}
-
-function drawPatternFrame(ctx, width, height, frets, strings, notes, second) {
-  // Clear canvas
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0); // Identity matrix
-  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-  ctx.restore();
-
-  // Draw fretboard
-  ctx.strokeStyle = COLOR_BASE;
-  roundRect(ctx, 0, 0, width, height, BORDER_RADIUS);
-  ctx.stroke();
-
-  // Draw frets
-  ctx.beginPath();
-  for (var j = 0; j < frets - 1; j++) {
-    var x = FRET_WIDTH * (j + 1);
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
-  }
-  ctx.closePath();
-  ctx.stroke();
-
-  // Draw strings
-  ctx.beginPath();
-  for (var j = 0; j < strings - 2; j++) {
-    var y = STRING_HEIGHT * (j + 1);
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-  }
-  ctx.closePath();
-  ctx.stroke();
-
-  // Draw notes
-  for (var j = 0; j < notes.length; j++) {
-    var note = notes[j];
-    var x = note.fret * FRET_WIDTH - FRET_WIDTH / 2;
-    var y = (strings - note.string) * STRING_HEIGHT;
-    var color;
-    if (note.active) {
-      color = COLOR_MINOR_THIRD_ACTIVE;
-    } else if (note.highlight) {
-      color = COLOR_MINOR_THIRD;
-    } else {
-      color = note.color;
-    }
-    note.x = x;
-    note.y = y;
-    drawNote(ctx, x, y, color, note.label);
-  }
-
-  // Draw arrows
-  /*
-  ctx.lineWidth = 2;
-  ctx.lineCap = LINE_CAP;
-  arrow(ctx, 0, 0, 200, 80, COLOR_MINOR_THIRD);
-  arrow(ctx, 0, 120, 100, 90, COLOR_MAJOR_SECOND);
-  arrow(ctx, 300, 0, 300, 100, COLOR_MINOR_THIRD);
-  */
 }
 
 // Return note objects given declarative notes definition
