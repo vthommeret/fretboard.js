@@ -203,15 +203,6 @@ class Pattern {
       note.y = y;
       drawNote(ctx, x, y, color, note.label);
     }
-
-    // Draw arrows
-    /*
-    ctx.lineWidth = 2;
-    ctx.lineCap = LINE_CAP;
-    arrow(ctx, 0, 0, 200, 80, COLOR_MINOR_THIRD);
-    arrow(ctx, 0, 120, 100, 90, COLOR_MAJOR_SECOND);
-    arrow(ctx, 300, 0, 300, 100, COLOR_MINOR_THIRD);
-    */
   }
 
   // Dispatch event to specific handlers.
