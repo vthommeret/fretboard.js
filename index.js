@@ -50,6 +50,7 @@ var INTERVALS = {
    '7': 11,
    '8': 12,
 };
+var OCTAVE = INTERVALS['8'];
 
 var DATA_KEY = 'im.pattern';
 
@@ -287,7 +288,19 @@ function parseNotes(notesData) {
       string++;
     }
     note = note.trim();
-    fret = INTERVALS[note] - (string - 1) * INTERVALS[STRING_INTERVAL] + 1;
+
+    var root = ((string - 1) * INTERVALS[STRING_INTERVAL]) % OCTAVE;
+    var target = INTERVALS[note];
+    var interval = target - root;
+
+    // Invert interval if necessary, for minimal distance.
+    if (interval > OCTAVE / 2) {
+      var sign = interval > 0 ? -1 : 1;
+      interval += sign * OCTAVE;
+    }
+
+    fret = interval;
+
     notes.push({
       color: COLOR_ROOT,
       fret: fret,
