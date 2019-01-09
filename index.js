@@ -30,6 +30,8 @@ var MIN_FRET = 1;
 var MIN_STRING = 2;
 var STRING_INTERVAL = 4; // Guitar string interval
 
+var NOTE_REGEX = /^([^\^]+)(\^*)$/; // Splits b7^^ into b7, ^^ (flat-seven, raised two strings).
+
 var INTERVALS = {
    '1': 0,
   '#1': 1,
@@ -281,13 +283,11 @@ function parseNotes(notesData) {
   var notes = [];
   var string = 1;
   for (var i = 0; i < notesData.length; i++) {
-    var note = notesData[i];
+    var match = notesData[i].trim().match(NOTE_REGEX);
+    var note = match[1];
     var fret;
-    if (note[note.length-1] === '^') {
-      note = note.substring(0, note.length-1);
-      string++;
-    }
-    note = note.trim();
+
+    string += match[2].length;
 
     var root = ((string - 1) * INTERVALS[STRING_INTERVAL]) % OCTAVE;
     var target = INTERVALS[note];
