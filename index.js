@@ -54,7 +54,70 @@ var INTERVALS = {
 };
 var OCTAVE = INTERVALS['8'];
 
+var NOTES = {
+   '1': 'C',
+  '#1': 'C#',
+  'b2': 'Db',
+   '2': 'D',
+  '#2': 'D#',
+  'b3': 'Eb',
+   '3': 'E',
+   '4': 'F',
+  '#4': 'F#',
+  'b5': 'Gb',
+   '5': 'G',
+  '#5': 'G#',
+  'b6': 'Ab',
+   '6': 'A',
+  '#6': 'A#',
+  'b7': 'Bb',
+   '7': 'B',
+   '8': 'C',
+};
+
+var NOTE_OCTAVE = '8';
+
 var DATA_KEY = 'im.pattern';
+
+var sampler = new Tone.Sampler({
+  'F3': '/guitar-acoustic/F3.mp3',
+  'F#1': '/guitar-acoustic/Fs1.mp3',
+  'F#2': '/guitar-acoustic/Fs2.mp3',
+  'F#3': '/guitar-acoustic/Fs3.mp3',
+  'G1': '/guitar-acoustic/G1.mp3',
+  'G2': '/guitar-acoustic/G2.mp3',
+  'G3': '/guitar-acoustic/G3.mp3',
+  'G#1': '/guitar-acoustic/Gs1.mp3',
+  'G#2': '/guitar-acoustic/Gs2.mp3',
+  'G#3': '/guitar-acoustic/Gs3.mp3',
+  'A1': '/guitar-acoustic/A1.mp3',
+  'A2': '/guitar-acoustic/A2.mp3',
+  'A3': '/guitar-acoustic/A3.mp3',
+  'A#1': '/guitar-acoustic/As1.mp3',
+  'A#2': '/guitar-acoustic/As2.mp3',
+  'A#3': '/guitar-acoustic/As3.mp3',
+  'B1': '/guitar-acoustic/B1.mp3',
+  'B2': '/guitar-acoustic/B2.mp3',
+  'B3': '/guitar-acoustic/B3.mp3',
+  'C2': '/guitar-acoustic/C2.mp3',
+  'C3': '/guitar-acoustic/C3.mp3',
+  'C4': '/guitar-acoustic/C4.mp3',
+  'C#2': '/guitar-acoustic/Cs2.mp3',
+  'C#3': '/guitar-acoustic/Cs3.mp3',
+  'C#4': '/guitar-acoustic/Cs4.mp3',
+  'D1': '/guitar-acoustic/D1.mp3',
+  'D2': '/guitar-acoustic/D2.mp3',
+  'D3': '/guitar-acoustic/D3.mp3',
+  'D4': '/guitar-acoustic/D4.mp3',
+  'D#1': '/guitar-acoustic/Ds1.mp3',
+  'D#2': '/guitar-acoustic/Ds2.mp3',
+  'D#3': '/guitar-acoustic/Ds3.mp3',
+  'E1': '/guitar-acoustic/E1.mp3',
+  'E2': '/guitar-acoustic/E2.mp3',
+  'E3': '/guitar-acoustic/E3.mp3',
+  'F1': '/guitar-acoustic/F1.mp3',
+  'F2': '/guitar-acoustic/F2.mp3'
+}).toMaster();
 
 function initPatterns() {
   var lastPattern;
@@ -246,7 +309,13 @@ class Pattern {
     var pos = getPos(canvas, e);
     for (var i = 0; i < notes.length; i++) {
       var note = notes[i];
-      note.active = (noteDistance(pos, note) <= NOTE_RADIUS);
+      if (noteDistance(pos, note) <= NOTE_RADIUS) {
+        note.active = true;
+        var octave = (note.note === NOTE_OCTAVE) ? 5 : 4;
+        sampler.triggerAttackRelease(NOTES[note.note] + (octave - 2), '2n');
+      } else {
+        note.active = false;
+      }
     }
     this.draw();
   }
@@ -306,6 +375,7 @@ function parseNotes(notesData) {
       fret: fret,
       string: string,
       label: styleNote(note),
+      note: note,
     });
   }
   return notes;
